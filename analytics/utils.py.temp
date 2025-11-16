@@ -1,0 +1,277 @@
+import io
+import math
+import pandas as pd
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
+from reportlab.graphics.shapes import Drawing, Rect
+from reportlab.graphics.charts.barcharts import VerticalBarChart
+from reportlab.graphics.charts.piecharts import Pie
+from reportlab.graphics.charts.linecharts import HorizontalLineChart
+from reportlab.graphics.widgets.markers import makeMarker
+
+def create_bar_chart(data, x_column, y_column, width=500, height=300):
+    df = pd.DataFrame(data)
+    
+    # Aggregate data
+    grouped = df.groupby(x_column)[y_column].mean().nlargest(10)
+    
+    drawing = Drawing(width, height)
+    bc = VerticalBarChart()
+    bc.x = 50
+    bc.y = 50
+    bc.height = height - 100
+    bc.width = width - 100
+    bc.data = [grouped.values.tolist()]
+    
+    # Configure chart
+    bc.strokeColor = colors.black
+    bc.valueAxis.valueMin = 0
+    bc.valueAxis.valueMax = max(grouped.values) * 1.1
+    bc.valueAxis.valueStep = bc.valueAxis.valueMax / 5
+    bc.categoryAxis.labels.boxAnchor = 'ne'
+    bc.categoryAxis.labels.angle = 30
+    bc.categoryAxis.categoryNames = grouped.index.tolist()
+    
+    # Add color gradients to bars
+    bc.bars[0].fillColor = colors.HexColor('#3B82F6')
+    bc.bars[0].strokeColor = colors.HexColor('#1E40AF')
+    
+    drawing.add(bc)
+    return drawing
+
+def create_pie_chart(data, column, width=500, height=300):
+    df = pd.DataFrame(data)
+    value_counts = df[column].value_counts().nlargest(8)
+    
+    drawing = Drawing(width, height)
+    pc = Pie()
+    pc.x = width // 2
+    pc.y = height // 2
+    pc.width = min(width, height) - 100
+    pc.height = pc.width
+    pc.data = value_counts.values.tolist()
+    pc.labels = value_counts.index.tolist()
+    
+    # Configure chart
+    pc.strokeWidth = 0.5
+    pc.slices.strokeWidth = 0.5
+    
+    # Add colors
+    colors_list = [
+        '#3B82F6', '#10B981', '#F59E0B', '#EF4444',
+        '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'
+    ]
+    for i, color in enumerate(colors_list[:len(value_counts)]):
+        pc.slices[i].fillColor = colors.HexColor(color)
+        pc.slices[i].strokeColor = colors.white
+    
+    drawing.add(pc)
+    return drawing
+
+def create_trend_chart(data, x_column, y_column, width=500, height=300):
+    df = pd.DataFrame(data)
+    
+    # Sort and aggregate data
+    df = df.sort_values(x_column)
+    grouped = df.groupby(x_column)[y_column].mean()
+    
+    drawing = Drawing(width, height)
+    lc = HorizontalLineChart()
+    lc.x = 50
+    lc.y = 50
+    lc.height = height - 100
+    lc.width = width - 100
+    lc.data = [grouped.values.tolist()]
+    
+    # Configure chart
+    lc.lineLabels.fontSize = 8
+    lc.strokeColor = colors.black
+    lc.lines[0].strokeColor = colors.HexColor('#3B82F6')
+    lc.lines[0].strokeWidth = 2
+    lc.lines[0].symbol = makeMarker('FilledCircle')
+    lc.valueAxis.valueMin = min(grouped.values) * 0.9
+    lc.valueAxis.valueMax = max(grouped.values) * 1.1
+    lc.valueAxis.valueStep = (lc.valueAxis.valueMax - lc.valueAxis.valueMin) / 5
+    
+    # Add labels
+    lc.categoryAxis.categoryNames = [str(x)[:10] for x in grouped.index]
+    lc.categoryAxis.labels.boxAnchor = 'ne'
+    lc.categoryAxis.labels.angle = 30
+    lc.categoryAxis.labels.fontSize = 8
+    
+    drawing.add(lc)
+    return drawing
+
+def generate_pdf_report(data, columns, filename):
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    elements = []
+    styles = getSampleStyleSheet()
+    
+    # Title
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        spaceAfter=30,
+        textColor=colors.HexColor('#3B82F6')
+    )
+    elements.append(Paragraph('DataViz Pro - Analysis Report', title_style))
+    
+    # Dataset Info
+    info_style = ParagraphStyle(
+        'Info',
+        parent=styles['Normal'],
+        fontSize=12,
+        spaceAfter=20,
+        textColor=colors.gray
+    )
+    elements.append(Paragraph(f'Dataset: {filename}', info_style))
+    
+    # Summary Statistics
+    elements.append(Paragraph('Summary Statistics', styles['Heading2']))
+    summary_data = [
+        ['Metric', 'Value'],
+        ['Total Rows', str(len(data))],
+        ['Total Columns', str(len(columns))],
+        ['Data Points', str(len(data) * len(columns))]
+    ]
+    
+    summary_table = Table(summary_data)
+    summary_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3B82F6')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('TOPPADDING', (0, 1), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+    ]))
+    elements.append(summary_table)
+    elements.append(Spacer(1, 20))
+    
+    # Data Visualizations
+    elements.append(Paragraph('Data Visualizations', styles['Heading2']))
+    elements.append(Spacer(1, 10))
+    
+    # Find numeric and categorical columns
+    df = pd.DataFrame(data)
+    numeric_cols = df.select_dtypes(include=['int64', 'float64']).columns
+    categorical_cols = df.select_dtypes(include=['object']).columns
+    
+    if len(numeric_cols) > 0 and len(categorical_cols) > 0:
+        # Bar Chart - Top categories by numeric value
+        elements.append(Paragraph('Top Categories Distribution', styles['Heading3']))
+        cat_col = categorical_cols[0]
+        num_col = numeric_cols[0]
+        bar_chart = create_bar_chart(data, cat_col, num_col)
+        elements.append(bar_chart)
+        elements.append(Spacer(1, 20))
+        
+        # Add chart description
+        elements.append(Paragraph(
+            f'Bar chart showing average {num_col} by {cat_col} (top 10 categories)',
+            styles['Normal']
+        ))
+        elements.append(Spacer(1, 30))
+    
+    if len(categorical_cols) > 0:
+        # Pie Chart - Category distribution
+        elements.append(Paragraph('Category Distribution', styles['Heading3']))
+        pie_chart = create_pie_chart(data, categorical_cols[0])
+        elements.append(pie_chart)
+        elements.append(Spacer(1, 20))
+        
+        elements.append(Paragraph(
+            f'Distribution of records across {categorical_cols[0]} (top 8 categories)',
+            styles['Normal']
+        ))
+        elements.append(Spacer(1, 30))
+    
+    if len(numeric_cols) > 1:
+        # Trend Chart - Numeric relationship
+        elements.append(Paragraph('Trend Analysis', styles['Heading3']))
+        trend_chart = create_trend_chart(data, numeric_cols[0], numeric_cols[1])
+        elements.append(trend_chart)
+        elements.append(Spacer(1, 20))
+        
+        elements.append(Paragraph(
+            f'Trend showing relationship between {numeric_cols[0]} and {numeric_cols[1]}',
+            styles['Normal']
+        ))
+    
+    elements.append(PageBreak())
+    
+    # Column Analysis
+    elements.append(Paragraph('Column Analysis', styles['Heading2']))
+    
+    def calculate_column_stats(column):
+        values = [row[column] for row in data if row[column] is not None]
+        numeric_values = [v for v in values if isinstance(v, (int, float)) and not isinstance(v, bool)]
+        
+        if numeric_values:
+            sorted_values = sorted(numeric_values)
+            mean = sum(numeric_values) / len(numeric_values)
+            return ['Numeric', f'Mean: {mean:.2f}', len(data) - len(values)]
+        else:
+            unique_values = len(set(values))
+            return ['Categorical', f'Unique: {unique_values}', len(data) - len(values)]
+    
+    column_data = [['Column', 'Type', 'Statistics', 'Missing']]
+    for col in columns:
+        stats = calculate_column_stats(col)
+        column_data.append([col] + stats)
+    
+    col_table = Table(column_data)
+    col_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3B82F6')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+        ('TOPPADDING', (0, 1), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+    ]))
+    elements.append(col_table)
+    elements.append(Spacer(1, 20))
+    
+    # Data Sample
+    elements.append(Paragraph('Data Sample (First 10 Rows)', styles['Heading2']))
+    sample_data = [[col for col in columns]]
+    for row in data[:10]:
+        sample_data.append([
+            str(row[col])[:30] if row[col] is not None else '-'
+            for col in columns
+        ])
+    
+    sample_table = Table(sample_data)
+    sample_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3B82F6')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('TOPPADDING', (0, 1), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+    ]))
+    elements.append(sample_table)
+    
+    # Build the PDF
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer

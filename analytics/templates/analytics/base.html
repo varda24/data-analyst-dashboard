@@ -1,0 +1,46 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}DataViz Pro{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.29.0/feather.min.js"></script>
+    <link href="{% static 'analytics/css/styles.css' %}" rel="stylesheet">
+</head>
+<body class="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-cyan-50">
+    <header class="bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i data-feather="bar-chart-2" class="w-8 h-8"></i>
+                    <div>
+                        <h1 class="text-2xl font-bold">DataViz Pro</h1>
+                        <p class="text-sm text-blue-100">Professional Data Analytics Dashboard</p>
+                    </div>
+                </div>
+                {% block header_actions %}{% endblock %}
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 mt-16">
+        <div class="container mx-auto px-6 py-6">
+            <p class="text-center text-gray-600 text-sm">
+                DataViz Pro - Professional Data Analytics Dashboard
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        feather.replace();
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

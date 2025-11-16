@@ -1,0 +1,121 @@
+{% extends 'analytics/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - DataViz Pro{% endblock %}
+
+{% block content %}
+<div id="app">
+    <div v-if="!dataset">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold text-gray-800 mb-4">
+                    Transform Your Data Into Insights
+                </h2>
+                <p class="text-lg text-gray-600">
+                    Upload your CSV file and get instant analytics, visualizations, and professional reports
+                </p>
+            </div>
+
+            <div id="upload-zone" class="relative border-3 border-dashed rounded-2xl p-12 text-center transition-all duration-300">
+                <input type="file" accept=".csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" @change="handleFileUpload">
+                <div class="flex flex-col items-center space-y-4">
+                    <div class="p-6 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full">
+                        <i data-feather="upload" class="w-12 h-12 text-white"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-2">
+                            Upload Your Dataset
+                        </h3>
+                        <p class="text-gray-600 mb-2">
+                            Drag and drop your CSV file here, or click to browse
+                        </p>
+                        <p class="text-sm text-gray-500">
+                            Supports CSV files up to 50MB
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div v-else class="space-y-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-800">Analysis Results</h2>
+                <p class="text-gray-600 mt-1">Dataset: [[ dataset.name ]]</p>
+            </div>
+            <div class="flex space-x-4">
+                <button @click="generateReport" class="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-cyan-600 transition-all shadow-lg hover:shadow-xl transform hover:scale-105">
+                    <i data-feather="download" class="w-5 h-5"></i>
+                    <span>Download PDF Report</span>
+                </button>
+                <button @click="resetDataset" class="px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition-all shadow-md">
+                    Upload New Dataset
+                </button>
+            </div>
+        </div>
+
+        <!-- Statistics Section -->
+        <div id="statistics-section" class="space-y-6">
+            <!-- Cards will be populated by JavaScript -->
+        </div>
+
+        <!-- Charts Section -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-6">Interactive Visualizations</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <select id="chart-type" class="px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                    <option value="bar">Bar Chart</option>
+                    <option value="line">Line Chart</option>
+                    <option value="pie">Pie Chart</option>
+                    <option value="scatter">Scatter Plot</option>
+                    <option value="histogram">Histogram</option>
+                    <option value="boxplot">Box Plot</option>
+                    <option value="heatmap">Heatmap</option>
+                </select>
+                <select id="x-axis" class="px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                </select>
+                <select id="y-axis" class="px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                </select>
+                <select id="z-axis" class="px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" style="display: none;">
+                </select>
+            </div>
+
+            <!-- Column Selection -->
+            <div class="mb-6">
+                <h4 class="text-lg font-semibold text-gray-700 mb-3">Select Columns to Display</h4>
+                <div id="column-selection" class="flex flex-wrap gap-3">
+                    <!-- Column checkboxes will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="bg-gray-50 rounded-xl p-6" style="height: 500px">
+                <canvas id="chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Data Table Section -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 space-y-4 md:space-y-0">
+                <h3 class="text-xl font-bold text-gray-800">Data Preview</h3>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <i data-feather="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+                        <input type="text" id="search-input" placeholder="Search data..." class="pl-10 pr-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all w-64">
+                    </div>
+                </div>
+            </div>
+            <div class="overflow-x-auto rounded-lg border-2 border-gray-200">
+                <table id="data-table" class="w-full">
+                    <!-- Table content will be populated by JavaScript -->
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
+<script src="{% static 'analytics/js/dashboard.js' %}"></script>
+{% endblock %}
